@@ -363,6 +363,8 @@ void SemanticSegmentationLayer::onInitialize()
       &SemanticSegmentationLayer::dynamicParametersCallback,
       this,
       std::placeholders::_1));
+
+  node_clock_ = node->get_clock();
 }
 
 // The method is called to ask the plugin: which area of costmap it needs to update.
@@ -373,6 +375,10 @@ void SemanticSegmentationLayer::updateBounds(
   double * min_x, double * min_y, double * max_x,
   double * max_y)
 {
+  if (!enabled_) {
+    return;
+  }
+
   std::lock_guard<Costmap2D::mutex_t> guard(*getMutex());
   if (rolling_window_) {
     updateOrigin(robot_x - getSizeInMetersX() / 2, robot_y - getSizeInMetersY() / 2);
@@ -386,12 +392,7 @@ void SemanticSegmentationLayer::updateBounds(
   getSegmentationTileMaps(segmentation_tile_maps);
 
   // Get current time for decay calculations
-  auto node = node_.lock();
-  if (!node) {
-    RCLCPP_ERROR(logger_, "Failed to lock node in updateBounds");
-    return;
-  }
-  double current_time = node->now().seconds();
+  double current_time = node_clock_->now().seconds();
 
   // Check if the current time is valid
   if (current_time <= 0.0) {
@@ -454,10 +455,10 @@ void SemanticSegmentationLayer::updateCosts(
   nav2_costmap_2d::Costmap2D & master_grid, int min_i,
   int min_j, int max_i, int max_j)
 {
-  std::lock_guard<Costmap2D::mutex_t> guard(*getMutex());
   if (!enabled_) {
     return;
   }
+  std::lock_guard<Costmap2D::mutex_t> guard(*getMutex());
 
   if (!current_ && was_reset_) {
     was_reset_ = false;

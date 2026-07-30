@@ -206,6 +206,7 @@ private:
     segmentation_buffers_;
 
   rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr dyn_params_handler_;
+  rclcpp::Clock::SharedPtr node_clock_;
 
   std::string global_frame_;
   std::string topics_string_;
